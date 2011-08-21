@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import eventlet, Socket
+import eventlet, Socket, Thread, sys
 from Socket import ClientSocket
-from eventlet.greenpool import GreenPool, GreenPile
+from Thread import ListenerThread
 from eventlet.green import socket
 
 class Listener(object):
@@ -10,7 +10,7 @@ class Listener(object):
     
     def __init__(self, socket):
         self.socket = socket
-        self.listening = False
+        self.listening = None
         
     def __repr__(self):
         """ represent """
@@ -21,7 +21,8 @@ class Listener(object):
         """ wrapper for _listen """
         
         self.listening = True
-        self._listen()
+        sys.stdout.write("Now listening on: %s" % (self.socket.gethostbyname()))
+        eventlet.spawn(self._listen).wait()
     
     def _listen(self):
         """ backend: listen on +socket+ """
@@ -31,6 +32,8 @@ class Listener(object):
                 # this first line will cause all future failures in this specific block. no more error handling is needed.
                 client, address = self.socket.connection.accept()
                 client = ClientSocket(client)
+                client.write('Connection successful!', '\r\n')
+                client.close()
             except (socket.error):
                 pass
     
@@ -46,13 +49,22 @@ class Server(object):
     def __init__(self, socketlist):
         self.sockets = socketlist
         self.listeners = []
-        self.pile = GreenPile()
+        self.threads = []
         
     def __repr__(self):
         """ represent """
         
         return "<echinus.Server(%s)>" % (len(self.listeners))
     
+    def add_socket(self, socket):
+        """ adds a new socket to the collection and begins listening """
+        
+        listener = Listener(socket)
+        self.listeners.append(listener)
+        listener_t = ListenerThread(listener)
+        self.threads.append(listener_t)
+        listener_t.run()
+
     def listen_all(self):
         """ starts an accept loop for all sockets in the list """
         
@@ -60,4 +72,6 @@ class Server(object):
         for socket in self.sockets:
             listener = Listener(socket)
             self.listeners.append(listener)
-            self.pile.spawn(listener.listen)
+            listener_t = ListenerThread(listener)
+            self.threads.append(listener_t)
+            listener_t.run()
