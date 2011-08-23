@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import eventlet, Socket, Thread, sys
+import eventlet, Socket, Thread
 from Socket import ClientSocket
 from Thread import ListenerThread
 from eventlet.green import socket
@@ -21,7 +21,7 @@ class Listener(object):
         """ wrapper for _listen """
         
         self.listening = True
-        sys.stdout.write("Now listening on: %s" % (self.socket.gethostbyname()))
+        print "Now listening on: %s:%s" % (self.socket.connection.getsockname())
         eventlet.spawn(self._listen).wait()
     
     def _listen(self):
