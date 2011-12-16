@@ -3,19 +3,19 @@
 import eventlet
 from eventlet.green import socket, ssl
 
-class Socket(object):
+class Socket(socket.socket):
     """ represents a socket connection. this class is meant to be
         utilised by the Socket4 and Socket6 classes, not by itself,
         though it could be used by itself. """
     
     def __init__(self, addr = None, port = None, use_ssl = False, family = socket.AF_INET):
         """ initialise the socket. """
+        socket.socket.__init__(self, socket.AF_INET, socket.SOCK_STREAM)
         
         self.addr = addr
         self.port = port
         self.ssl = use_ssl
         self.family = family
-        self.socket = socket.socket(family, socket.SOCK_STREAM)
         self.bound = False
         self.closed = False
         
@@ -51,19 +51,19 @@ class Socket(object):
         """ writes data to the socket """
         
         data = data if not ln else data + ln
-        self.connection.send(data)
+        self.send(data)
     
     def read(self, bs = 1024):
         """ reads +bs+ bytes from the socket """
         
-        return self.connection.recv(bs)
+        return self.recv(bs)
     
-    def close(self):
+    def _close(self):
         """ closes the underlying connection """
         
         self.closed = True
         self.bound = False
-        self.connection.close()
+        self.close()
 
 class ClientSocket(Socket):
     """ represents a server->client socket """
